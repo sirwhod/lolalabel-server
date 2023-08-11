@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id                   String                 @id @default(uuid())
+  username             String                 @unique
+  name                 String
+  imgProfile           String
+  departament          String
+  permission           String
+  password             String                 @default(uuid())
+  active               Boolean                @default(false)
+  Instructions         Instructions[]
+  InstructionsValidate InstructionsValidate[]
+  Products             Products[]
+  ProductsValidated    ProductsValidated[]
+  ProductsDisabled     ProductsDisabled[]
+  InstructionsDisabled InstructionsDisabled[]
+  Log                  Log[]
+}
+
+model Products {
+  id                String              @id @default(uuid())
+  sku               String
+  version           String
+  productName       String
+  productLine       String
+  productImage      String
+  composition       String
+  whoCreated        Users               @relation(fields: [authorId], references: [id])
+  authorId          String
+  creationDate      DateTime
+  updatedAt         DateTime            @updatedAt
+  isActive          Boolean             @default(false)
+  isValidated       Boolean             @default(false)
+  qrCodeIsActive    Boolean             @default(false)
+  ProductsValidated ProductsValidated[]
+  Instructions      Instructions[]
+  ProductsDisabled  ProductsDisabled[]
+  Stamps            Stamps[]
+}
+
+model Stamps {
+  id          String   @id @default(uuid())
+  whatProduct Products @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productId   String
+  nameStamp   String
+  image       String
+  active      Boolean  @default(false)
+}
+
+model ProductsValidated {
+  id              String   @id @default(uuid())
+  whatProduct     Products @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productId       String
+  whoValidated    Users    @relation(fields: [validatorId], references: [id])
+  validatorId     String
+  validationDate  DateTime
+  productAccepted Boolean  @default(false)
+}
+
+model Instructions {
+  id                   String                 @id @default(uuid())
+  language             String
+  whatIAm              String
+  modeOfUse            String
+  Precaution           String
+  whatProduct          Products               @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productId            String
+  whoCreated           Users                  @relation(fields: [authorId], references: [id])
+  authorId             String
+  creationDate         DateTime
+  updatedAt            DateTime               @updatedAt
+  isActive             Boolean                @default(false)
+  isValidated          Boolean                @default(false)
+  InstructionsValidate InstructionsValidate[]
+  InstructionsDisabled InstructionsDisabled[]
+}
+
+model InstructionsValidate {
+  id                String       @id @default(uuid())
+  whatInstruction   Instructions @relation(fields: [idInstruction], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  idInstruction     String
+  whoValidated      Users        @relation(fields: [validatorId], references: [id])
+  validatorId       String
+  validationDate    DateTime
+  instructionAccept Boolean
+}
+
+model ProductsDisabled {
+  id           String   @id @default(uuid())
+  whatProduct  Products @relation(fields: [idProduct], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  idProduct    String
+  whoDisabled  Users    @relation(fields: [userId], references: [id])
+  userId       String
+  disabledDate DateTime
+  reason       String
+}
+
+model InstructionsDisabled {
+  id              String       @id @default(uuid())
+  whatInstruction Instructions @relation(fields: [idInstruction], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  idInstruction   String
+  whoDisabled     Users        @relation(fields: [userId], references: [id])
+  userId          String
+  disabledDate    DateTime
+  reason          String
+}
+
+model Log {
+  id                   String   @id @default(uuid())
+  action               String
+  productOrInstruction Boolean
+  itemName             String
+  userId               String
+  agent                Users    @relation(fields: [userId], references: [id])
+  creationDate         DateTime
+}
+
+model LoginEvents {
+  id          String   @id @default(uuid())
+  name        String
+  password    String
+  activeData  DateTime
+  active      Boolean  @default(false)
+  drawn       Boolean  @default(false)
+  drawnClient String
+}
+
+model ClientEvents {
+  id    String  @id @default(uuid())
+  phone String
+  name  String
+  email String
+  event String
+  news  Boolean @default(false)
+}
