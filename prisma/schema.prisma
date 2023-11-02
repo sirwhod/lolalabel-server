@@ -2,12 +2,15 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["PR", "PS", "PCK"]
 }
 
 model Users {
@@ -26,6 +29,8 @@ model Users {
   ProductsDisabled     ProductsDisabled[]
   InstructionsDisabled InstructionsDisabled[]
   Log                  Log[]
+
+  @@schema("PR")
 }
 
 model Products {
@@ -36,6 +41,7 @@ model Products {
   productLine       String
   productImage      String
   composition       String
+  compositionINCI   String
   whoCreated        Users               @relation(fields: [authorId], references: [id])
   authorId          String
   creationDate      DateTime
@@ -47,6 +53,8 @@ model Products {
   Instructions      Instructions[]
   ProductsDisabled  ProductsDisabled[]
   Stamps            Stamps[]
+
+  @@schema("PR")
 }
 
 model Stamps {
@@ -56,6 +64,8 @@ model Stamps {
   nameStamp   String
   image       String
   active      Boolean  @default(false)
+
+  @@schema("PR")
 }
 
 model ProductsValidated {
@@ -66,6 +76,8 @@ model ProductsValidated {
   validatorId     String
   validationDate  DateTime
   productAccepted Boolean  @default(false)
+
+  @@schema("PR")
 }
 
 model Instructions {
@@ -84,6 +96,8 @@ model Instructions {
   isValidated          Boolean                @default(false)
   InstructionsValidate InstructionsValidate[]
   InstructionsDisabled InstructionsDisabled[]
+
+  @@schema("PR")
 }
 
 model InstructionsValidate {
@@ -94,6 +108,8 @@ model InstructionsValidate {
   validatorId       String
   validationDate    DateTime
   instructionAccept Boolean
+
+  @@schema("PR")
 }
 
 model ProductsDisabled {
@@ -104,6 +120,8 @@ model ProductsDisabled {
   userId       String
   disabledDate DateTime
   reason       String
+
+  @@schema("PR")
 }
 
 model InstructionsDisabled {
@@ -114,6 +132,8 @@ model InstructionsDisabled {
   userId          String
   disabledDate    DateTime
   reason          String
+
+  @@schema("PR")
 }
 
 model Log {
@@ -124,6 +144,8 @@ model Log {
   userId               String
   agent                Users    @relation(fields: [userId], references: [id])
   creationDate         DateTime
+
+  @@schema("PR")
 }
 
 model LoginEvents {
@@ -134,6 +156,8 @@ model LoginEvents {
   active      Boolean  @default(false)
   drawn       Boolean  @default(false)
   drawnClient String
+
+  @@schema("PS")
 }
 
 model ClientEvents {
@@ -143,4 +167,131 @@ model ClientEvents {
   email String
   event String
   news  Boolean @default(false)
+
+  @@schema("PS")
+}
+
+model CK_User {
+  USid           String  @id @default(uuid())
+  USname         String
+  USusername     String  @unique
+  USpassword     String
+  USregistration String  @unique
+  USstatus       Boolean
+  USidProfile    String
+  USidStore      String
+
+  CK_fill CK_Fill[]
+
+  profile              CK_Profile             @relation(fields: [USidProfile], references: [PRid])
+  store                CK_Store               @relation(fields: [USidStore], references: [STid])
+  CK_ChecklistStarted  CK_ChecklistStarted[]
+  CK_ChecklistFinished CK_ChecklistFinished[]
+
+  @@schema("PCK")
+}
+
+model CK_Profile {
+  PRid     String  @id @default(uuid())
+  PRname   String
+  PRstatus Boolean
+
+  CK_User CK_User[]
+
+  @@schema("PCK")
+}
+
+model CK_Store {
+  STid     String  @id @default(uuid())
+  STname   String  @unique
+  STstatus Boolean
+
+  CK_User      CK_User[]
+  CK_checklist CK_Checklist[]
+
+  @@schema("PCK")
+}
+
+model CK_Checklist {
+  CLid      String  @id @default(uuid())
+  CLname    String
+  CLidStore String
+  CLstatus  Boolean
+
+  CK_task CK_Task[]
+
+  store              CK_Store             @relation(fields: [CLidStore], references: [STid])
+  CK_ChecklistFilled CK_ChecklistFilled[]
+
+  @@schema("PCK")
+}
+
+model CK_Task {
+  TKid          String  @id @default(uuid())
+  TKidChecklist String
+  TKname        String
+  TKdescription String
+  TKstatus      Boolean
+
+  CK_fill CK_Fill[]
+
+  checklist CK_Checklist @relation(fields: [TKidChecklist], references: [CLid])
+
+  @@schema("PCK")
+}
+
+model CK_Fill {
+  FLid                String    @id @default(uuid())
+  FLidTask            String
+  FLfilledAt          DateTime?
+  FLresponse          String?
+  FLcomment           String?
+  FLidUser            String
+  FLidChecklistFilled String
+
+  task            CK_Task            @relation(fields: [FLidTask], references: [TKid])
+  user            CK_User            @relation(fields: [FLidUser], references: [USid])
+  checklistFilled CK_ChecklistFilled @relation(fields: [FLidChecklistFilled], references: [CFLid])
+
+  @@schema("PCK")
+}
+
+model CK_ChecklistFilled {
+  CFLid          String   @id @default(uuid())
+  CFLidChecklist String
+  CFLStarted     Boolean  @default(false)
+  CFLFinished    Boolean  @default(false)
+  CFLcreatedAt   DateTime
+
+  checklist CK_Checklist @relation(fields: [CFLidChecklist], references: [CLid])
+
+  CK_Fill              CK_Fill[]
+  CK_ChecklistStarted  CK_ChecklistStarted[]
+  CK_ChecklistFinished CK_ChecklistFinished[]
+
+  @@schema("PCK")
+}
+
+model CK_ChecklistStarted {
+  CSid                String   @id @default(uuid())
+  CSidUserStarted     String
+  CSstartedAt         DateTime
+  CSidChecklistFilled String
+
+  user            CK_User            @relation(fields: [CSidUserStarted], references: [USid])
+  checklistFilled CK_ChecklistFilled @relation(fields: [CSidChecklistFilled], references: [CFLid])
+
+  @@schema("PCK")
+}
+
+model CK_ChecklistFinished {
+  CFid                String   @id @default(uuid())
+  CFidUserFinished    String
+  CFfinishedAt        DateTime
+  CFidChecklistFilled String
+
+  user            CK_User            @relation(fields: [CFidUserFinished], references: [USid])
+  checklistFilled CK_ChecklistFilled @relation(fields: [CFidChecklistFilled], references: [CFLid])
+
+  @@schema("PCK")
 }

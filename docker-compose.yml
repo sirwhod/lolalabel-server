@@ -1,6 +1,13 @@
 version: "3"
 
 services:
+  app:
+    build: .
+    command: npm start
+    ports:
+      - "5569:5569"
+    volumes:
+      - .:/app/backend
   db-postgres-evento:
     image: postgres:alpine
     ports:
