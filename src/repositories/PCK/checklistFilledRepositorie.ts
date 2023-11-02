@@ -3,6 +3,8 @@ import { CK_ChecklistFilled, CK_ChecklistFinished, CK_ChecklistStarted, CK_Fill 
 import { prisma } from "../../database";
 import { IPCKChecklistFilledRepository } from "../../interfaces/PCK/IChecklistFilledRepository";
 
+import { format } from 'date-fns'
+
 class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
   public async createCFL(CFLidChecklist: string): Promise<CK_ChecklistFilled> {
     const checklistFilled = await prisma.cK_ChecklistFilled.create({
@@ -42,6 +44,10 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
             }
           }, 
           CSstartedAt: new Date()
+        },
+        include: {
+          checklistFilled: true,
+          user: true
         }
       })
   
@@ -53,12 +59,18 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
     CFidChecklistFilled: string,
     CFidUserFinished: string
   ): Promise<CK_ChecklistFinished> {
+    console.log(CFidChecklistFilled)
+
     const checklist = await prisma.cK_ChecklistFilled.update({
       where: {
         CFLid: CFidChecklistFilled
       },
       data: {
+        CFLStarted: false,
         CFLFinished: true
+      },
+      include: {
+        checklist: true
       }
     })
 
@@ -76,11 +88,43 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
             }
           },
           CFfinishedAt: new Date()
+        },
+        include: {
+          user: true,
+          checklistFilled: {
+            include: {
+              checklist: true
+            }
+          }
         }
       })
   
       return checklistFinish
     }
+  }
+
+  public async checkIdCFLToday(
+    CFLidChecklist: string, 
+    CFLcreatedAt: Date
+  ): Promise<CK_ChecklistFilled> {
+
+    const checklists = await prisma.cK_ChecklistFilled.findMany({
+      where: {
+        CFLidChecklist
+      }
+    })
+
+    const checklistToday = checklists.find((checklist) => {
+      
+      return  format(new Date(checklist.CFLcreatedAt), 'yyyy-MM-dd') === format(new Date(CFLcreatedAt), 'yyyy-MM-dd')
+    })
+
+    if (checklistToday) {
+      return checklistToday
+    } else {
+      return null
+    }
+
   }
 
   public async findByIdCFL(
@@ -89,6 +133,23 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
     const checklist = await prisma.cK_ChecklistFilled.findUnique({
       where: {
         CFLid
+      },
+      include: {
+        checklist: true,
+        CK_ChecklistFinished: true,
+        CK_ChecklistStarted: true,
+        CK_Fill: {
+          include: {
+            task: true,
+            user: {
+              select: {
+                USid: true,
+                USname: true,
+                USusername: true
+              }
+            }
+          }
+        }
       }
     })
 
@@ -99,6 +160,23 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
     const checklists = await prisma.cK_ChecklistFilled.findMany({
       where: {
         CFLStarted: true
+      },
+      include: {
+        checklist: true,
+        CK_ChecklistFinished: true,
+        CK_ChecklistStarted: true,
+        CK_Fill: {
+          include: {
+            task: true,
+            user: {
+              select: {
+                USid: true,
+                USname: true,
+                USusername: true
+              }
+            }
+          }
+        }
       }
     })
 
@@ -109,6 +187,23 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
     const checklists = await prisma.cK_ChecklistFilled.findMany({
       where: {
         CFLFinished: true
+      },
+      include: {
+        checklist: true,
+        CK_ChecklistFinished: true,
+        CK_ChecklistStarted: true,
+        CK_Fill: {
+          include: {
+            task: true,
+            user: {
+              select: {
+                USid: true,
+                USname: true,
+                USusername: true
+              }
+            }
+          }
+        }
       }
     })
 
@@ -116,7 +211,37 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
   }
 
   public async findAllCFL(): Promise<CK_ChecklistFilled[]> {
-    const checklists = await prisma.cK_ChecklistFilled.findMany()
+    const checklists = await prisma.cK_ChecklistFilled.findMany({
+      include: {
+        checklist: true,
+        CK_ChecklistFinished: {
+          include: {
+            checklistFilled: {
+              include: {
+                CK_Fill: {
+                  include: {
+                    task: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        CK_ChecklistStarted: {
+          include: {
+            checklistFilled: {
+              include: {
+                CK_Fill: {
+                  include: {
+                    task: true
+                  }
+                }
+              }
+            }
+          }
+        },
+      }
+    })
 
     return checklists
   }
@@ -145,6 +270,21 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
             CFLid: FLidChecklistFilled
           }
         }
+      },
+      include: {
+        task: true,
+        checklistFilled: {
+          include: {
+            checklist: true
+          }
+        },
+        user: {
+          select: {
+            USid: true,
+            USname: true,
+            USusername: true
+          }
+        }
       }
     })
 
@@ -170,6 +310,21 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
           }
         },
         FLfilledAt: new Date()
+      },
+      include: {
+        task: true,
+        checklistFilled: {
+          include: {
+            checklist: true
+          }
+        },
+        user: {
+          select: {
+            USid: true,
+            USname: true,
+            USusername: true
+          }
+        }
       }
     })
 
@@ -182,6 +337,21 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
     const fillTask = await prisma.cK_Fill.findUnique({
       where: {
         FLid
+      },
+      include: {
+        task: true,
+        checklistFilled: {
+          include: {
+            checklist: true
+          }
+        },
+        user: {
+          select: {
+            USid: true,
+            USname: true,
+            USusername: true
+          }
+        }
       }
     })
 
@@ -194,6 +364,21 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
     const fillTask = await prisma.cK_Fill.findMany({
       where: {
         FLidChecklistFilled
+      },
+      include: {
+        task: true,
+        checklistFilled: {
+          include: {
+            checklist: true
+          }
+        },
+        user: {
+          select: {
+            USid: true,
+            USname: true,
+            USusername: true
+          }
+        }
       }
     })
 
@@ -201,7 +386,23 @@ class PCKChecklistFilledRepository implements IPCKChecklistFilledRepository {
   }
 
   public async findAllFL(): Promise<CK_Fill[]> {
-    const fillTask = await prisma.cK_Fill.findMany()
+    const fillTask = await prisma.cK_Fill.findMany({
+      include: {
+        task: true,
+        checklistFilled: {
+          include: {
+            checklist: true
+          }
+        },
+        user: {
+          select: {
+            USid: true,
+            USname: true,
+            USusername: true
+          }
+        }
+      }
+    })
 
     return fillTask
   }

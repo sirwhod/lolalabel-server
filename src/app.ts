@@ -17,6 +17,7 @@ import { PCKstore } from './routes/PCK/PCKstore';
 import { PCKProfile } from './routes/PCK/PCKprofile';
 import { PCKChecklist } from './routes/PCK/PCKchecklist';
 import { PCKTask } from './routes/PCK/PCKtask';
+import { PCKFill } from './routes/PCK/PCKFill';
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use(PCKstore)
 app.use(PCKProfile)
 app.use(PCKChecklist)
 app.use(PCKTask)
+app.use(PCKFill)
 
 
 export {

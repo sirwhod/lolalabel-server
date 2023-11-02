@@ -12,6 +12,10 @@ export interface IPCKChecklistFilledRepository {
     CFidChecklistFilled: string,
     CFidUserFinished: string
   ): Promise<CK_ChecklistFinished>
+  checkIdCFLToday(
+    CFLidChecklist: string, 
+    CFLcreatedAt: Date
+  ): Promise<CK_ChecklistFilled>
   findByIdCFL(
     CFLid: string
   ): Promise<CK_ChecklistFilled>
